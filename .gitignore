@@ -1,0 +1,9 @@
+.vscode/
+anykeys.code-workspace
+build/
+client/build/
+amx/
+include/plugincommon.h
+include/ptl.h
+samp-server-api/.vscode/
+samp-server-api/samp-server-api.zip
