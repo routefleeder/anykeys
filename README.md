@@ -18,7 +18,7 @@ public OnPlayerPressKey(playerid, key, lastkey)
     SendClientMessage(playerid, -1, "Shift + W combination detected!");
   }
 
-	return 1;
+  return 1;
 }
 ```
 
