@@ -11,7 +11,7 @@ public OnPlayerPressKey(playerid, key, lastkey)
   {
     new keyCode[144];
     format(keyCode, sizeof(keyCode), "You just pressed J or Left Shift key! Key code: %d", key);
-    SendClientMessage(playerid, -1, "You just pressed J or Left Shift key!");
+    SendClientMessage(playerid, -1, keyCode);
   }
   else if(key == VK_W && lastkey == VK_LSHIFT) // for key combinations
   {
