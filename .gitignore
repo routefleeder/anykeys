@@ -7,3 +7,6 @@ include/plugincommon.h
 include/ptl.h
 samp-server-api/.vscode/
 samp-server-api/samp-server-api.zip
+backup/
+client/backup/
+client/minhook/

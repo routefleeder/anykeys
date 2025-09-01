@@ -1,26 +1,25 @@
 #include <windows.h>
-#include <map>
-// #include <thread>
-// #include "common.h"
+#include <thread>
 #include "raknet/RakClientInterface.h"
 #include "sampapi/CNetGame.h"
-// #include "sampapi/CChat.h"
-// #include "sampapi/CInput.h"
 #include "sampapi/CGame.h"
 
-// #define GAME_STAGE 0xC8D4C0
+#include "plugin.h"
+#include <map>
+
+#define GAME_STAGE 0xC8D4C0
+
+// using CTimer__Update = void(__fastcall*)(void*);
+// CTimer__Update pOriginalFunction = nullptr;
+
+// using CGame__Process = void(__fastcall*)(void*);
+// CGame__Process ofGameProcess = nullptr;
 
 // static plugin::CdeclEvent<plugin::AddressList<0x53BF0B, plugin::H_CALL>, plugin::PRIORITY_AFTER, plugin::ArgPickNone, void()> CTimerProcessEvent;
 
-// void AddMessageJumpQ(const char* text, unsigned int time, unsigned short flag, bool bPreviousBrief)
-// {
-//     ((void(__cdecl*)(const char*, unsigned int, unsigned short, bool))0x69F1E0)(text, time, flag, bPreviousBrief);
-// }
+std::map<int, bool> keyStates;
 
 static char rpcId = 241;
-
-std::map<int, bool> keyStates;
-static u_long lastKey = 0;
 
 void SendKeyRPC(int currentkey, int lastkey)
 {
@@ -32,78 +31,61 @@ void SendKeyRPC(int currentkey, int lastkey)
     sampapi::v037r3::RefNetGame()->m_pRakClient->RPC(&rpcId, &bs, PacketPriority::HIGH_PRIORITY, PacketReliability::VERY_RELABLE, 0, false);
 }
 
-HHOOK g_hHook = NULL;
-
-LRESULT CALLBACK KeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
+void SafetyKeyHook()
 {
-    if(GetForegroundWindow() == FindWindowA(0, "GTA:SA:MP"))
+    if((GetForegroundWindow() == FindWindowA(0, "GTA:SA:MP") || GetForegroundWindow() == FindWindowA(0, "GTA:S&SMP")) && sampapi::v037r3::RefNetGame() != nullptr && (!sampapi::v037r3::RefGame()->m_nCursorMode || (sampapi::v037r3::RefGame()->m_nCursorMode == 1 || sampapi::v037r3::RefGame()->m_nCursorMode == 4)) && !sampapi::v037r3::RefGame()->IsMenuVisible())
     {
-        sampapi::v037r3::CNetGame* cnet_ptr = sampapi::v037r3::RefNetGame();
-        if ((nCode == HC_ACTION) && (cnet_ptr != nullptr) && (!sampapi::v037r3::RefGame()->m_nCursorMode || (sampapi::v037r3::RefGame()->m_nCursorMode == 1 || sampapi::v037r3::RefGame()->m_nCursorMode == 4)) && !sampapi::v037r3::RefGame()->IsMenuVisible())
-        {
-            PKBDLLHOOKSTRUCT p = (PKBDLLHOOKSTRUCT)lParam;
+        bool isShiftPressed = plugin::KeyPressed(VK_SHIFT);
+        bool isCtrlPressed = plugin::KeyPressed(VK_CONTROL);
+        bool isAltPressed = plugin::KeyPressed(VK_MENU);
 
-            u_long currentKey = p->vkCode;
-            if (wParam == WM_KEYDOWN)
+        for(int i = 1; i < 256; ++i)
+        {
+            if(i == VK_SHIFT || i == VK_CONTROL || i == VK_MENU || i == VK_LSHIFT || i == VK_LCONTROL || i == VK_LMENU || i == VK_RSHIFT || i == VK_RCONTROL || i == VK_RMENU) continue;
+
+            if(plugin::KeyPressed(i) && !keyStates[i])
             {
-                if(!keyStates[currentKey])
+                if(isShiftPressed)
                 {
-                    keyStates[currentKey] = true;
-                    if (lastKey != 0 && lastKey != currentKey)
-                    {
-                        SendKeyRPC(currentKey, lastKey);
-                        
-                        lastKey = 0;
-                    }
-                    else if(lastKey == 0)
-                    {
-                        lastKey = currentKey;
-                    }
+                    keyStates[i] = true;
+                    SendKeyRPC(i, VK_SHIFT);
+                    break;
+                }
+                else if(isCtrlPressed)
+                {
+                    keyStates[i] = true;
+                    SendKeyRPC(i, VK_CONTROL);
+                    break;
+                }
+                else if(isAltPressed)
+                {
+                    keyStates[i] = true;
+                    SendKeyRPC(i, VK_MENU);
+                    break;
+                }
+                else
+                {
+                    keyStates[i] = true;
+                    SendKeyRPC(i, 0);
+                    break;
                 }
             }
-            if (wParam == WM_KEYUP)
+            else if(!plugin::KeyPressed(i) && keyStates[i])
             {
-                if((currentKey == VK_LMENU || currentKey == VK_RMENU) && lastKey == 0)
-                {
-                    SendKeyRPC(currentKey, 0);
-                    lastKey = 0;
-                }
-                else if(currentKey == lastKey)
-                {
-                    SendKeyRPC(currentKey, 0);
-                    lastKey = 0;
-                }
-                keyStates[currentKey] = false;
+                keyStates[i] = false;
+                break;
             }
         }
     }
-    return CallNextHookEx(g_hHook, nCode, wParam, lParam);
 }
 
-void KeyThread()
+void InitAndLoad()
 {
-    // while (*reinterpret_cast<unsigned char*>(GAME_STAGE) != 9) { // while (стадия игры != полностью проинициализирована)
-    //     Sleep(100);
-    // }
-    // HWND* gtaHwnd = reinterpret_cast<HWND*>(0xC17040);
-    g_hHook = SetWindowsHookEx(WH_KEYBOARD_LL, KeyboardProc, GetModuleHandle(NULL), 0);
-    // while (true)
-    // {
-    //     if (GetAsyncKeyState(VK_F5) & 1)
-    //     {
-    //         if (GetForegroundWindow() == FindWindowA(0, "GTA:SA:MP"))
-    //         {
-    //             AddMessageJumpQ("~g~F5 pressed!", 1000, 0, false);
-
-    //             char id = 241;
-    //             RakNet::BitStream bs;
-    //             bs.Write(VK_F5);
-
-    //             sampapi::v037r3::RefNetGame()->m_pRakClient->RPC(&id, &bs, PacketPriority::HIGH_PRIORITY, PacketReliability::VERY_RELABLE, 0, false);
-    //             sampapi::v037r3::RefChat()->AddMessage(0xFFFFFFFF, "Test RPC");
-    //         }
-    //     }
-    // }
+    while(*reinterpret_cast<unsigned char*>(GAME_STAGE) != 9)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100u));
+    }
+    plugin::Events::gameProcessEvent += SafetyKeyHook;
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
@@ -111,7 +93,7 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserv
     if (ul_reason_for_call == DLL_PROCESS_ATTACH)
     {
         DisableThreadLibraryCalls(hModule);
-        KeyThread();
+        std::thread(InitAndLoad).detach();
     }
 
     return TRUE;
