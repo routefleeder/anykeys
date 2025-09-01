@@ -1,0 +1,3 @@
+[submodule "client/plugin-sdk-cmake"]
+	path = client/plugin-sdk-cmake
+	url = https://github.com/maksmanus/plugin-sdk-cmake.git
