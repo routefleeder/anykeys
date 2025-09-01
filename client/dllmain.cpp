@@ -85,7 +85,7 @@ void InitAndLoad()
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(100u));
     }
-    plugin::Events::gameProcessEvent += SafetyKeyHook;
+    plugin::Events::gameProcessEvent.after += SafetyKeyHook;
 }
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
